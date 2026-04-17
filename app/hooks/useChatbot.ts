@@ -10,9 +10,8 @@ export interface ChatbotSettings {
   primaryColor: string;
   secondaryColor: string;
   iconUrl?: string;
+  iconMediaId?: string;
   apiKey?: string;
-  apiProvider: 'openai' | 'anthropic' | 'gemini' | 'custom';
-  customApiEndpoint?: string;
   welcomeMessage: string;
   placeholderText: string;
   botName: string;
@@ -33,6 +32,7 @@ export function useChatbot(siteId: string | undefined): UseChatbotReturn {
 
   const fetchSettings = useCallback(async () => {
     if (!siteId) {
+      console.log('[Chatbot] No siteId provided, skipping settings fetch');
       setSettings(null);
       return;
     }
@@ -40,17 +40,19 @@ export function useChatbot(siteId: string | undefined): UseChatbotReturn {
     try {
       setLoading(true);
       setError(null);
-      console.log('[useChatbot] Fetching settings for siteId:', siteId);
-      const response = await api.get(`/chatbot/public/${siteId}`);
-      console.log('[useChatbot] Response:', response);
-      const data = response.data?.data ?? response.data;
-      console.log('[useChatbot] Parsed data:', data);
-      console.log('[useChatbot] API Key present:', !!data?.apiKey);
-      console.log('[useChatbot] API Key value:', data?.apiKey ? '***' + data.apiKey.slice(-4) : 'undefined');
+      console.log('[Chatbot] Fetching settings for siteId:', siteId);
+      const response = await api.get(`/chatbot/public/${siteId}?t=${Date.now()}`);
+      console.log('[Chatbot] Settings response:', response);
+      // Handle both { data: {...} } and direct object response
+      const data = response?.data ?? response;
+      console.log('[Chatbot] Parsed settings data:', data);
+      console.log('[Chatbot] Chatbot enabled:', data?.isEnabled);
+      console.log('[Chatbot] API Key present:', !!data?.apiKey);
+      console.log('[Chatbot] API Key value:', data?.apiKey ? '***' + data.apiKey.slice(-4) : 'undefined');
       // Inject siteId into settings for proxy API calls
       setSettings(data ? { ...data, siteId } : null);
     } catch (err) {
-      console.warn('[useChatbot] Failed to load chatbot settings:', err);
+      console.warn('[Chatbot] Failed to load chatbot settings:', err);
       setSettings(null);
       setError(err instanceof Error ? err.message : 'Failed to load chatbot settings');
     } finally {

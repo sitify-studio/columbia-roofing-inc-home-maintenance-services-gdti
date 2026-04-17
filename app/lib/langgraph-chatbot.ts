@@ -40,7 +40,7 @@ export class LangGraphChatbot {
 
   constructor(config: ChatbotConfig) {
     this.config = {
-      model: "gemini-1.5-flash",
+      model: "gemini-2.5-flash",
       temperature: 0.7,
       maxTokens: 1024,
       systemPrompt: "You are a helpful AI assistant for a home maintenance services company. Be friendly, professional, and helpful.",
@@ -120,10 +120,11 @@ export class LangGraphChatbot {
           return state.error ? "error_handler" : END;
         },
         {
-          error_handler: END,
+          "error_handler": "error_handler",
           [END]: END,
         }
-      );
+      )
+      .addEdge("error_handler", END);
 
     return workflow.compile();
   }

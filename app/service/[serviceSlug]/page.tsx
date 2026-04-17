@@ -5,11 +5,11 @@ import api from '@/app/lib/fetch-api'
 import ServiceClient from './ServiceClient'
 
 interface ServicePageProps {
-  params: { serviceSlug: string }
+  params: Promise<{ serviceSlug: string }>
 }
 
 export async function generateServiceMetadata({ params }: ServicePageProps): Promise<Metadata> {
-  const { serviceSlug } = params
+  const { serviceSlug } = await params
   
   try {
     // Fetch default site first
@@ -41,6 +41,7 @@ export async function generateServiceMetadata({ params }: ServicePageProps): Pro
   }
 }
 
-export default function ServicePage({ params }: ServicePageProps) {
-  return <ServiceClient serviceSlug={params.serviceSlug} />
+export default async function ServicePage({ params }: ServicePageProps) {
+  const { serviceSlug } = await params
+  return <ServiceClient serviceSlug={serviceSlug} />
 }

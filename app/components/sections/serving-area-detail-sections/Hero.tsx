@@ -20,8 +20,6 @@ export const HeroSection: React.FC<HeroSectionProps> = ({ hero, className }) => 
   // More permissive check - render if there's any content
   if (!hero || (!hero.title && !hero.media && !hero.backgroundMedia)) return null;
 
-  console.log('🔍 Hero section data:', hero);
-
   const mediaItems = useMemo(() => {
     const items = Array.isArray((hero as any).mediaItems) ? (hero as any).mediaItems : [];
     if (items.length > 0) return items;

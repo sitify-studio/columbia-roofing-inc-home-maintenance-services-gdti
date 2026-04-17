@@ -34,8 +34,6 @@ const createFetchApi = (baseURL: string, defaultTimeout = 30000) => {
     const timeoutId = setTimeout(() => controller.abort(), timeout);
 
     try {
-      console.log(`[fetch-api] GET ${url}`);
-      
       const response = await fetch(url, {
         ...fetchOptions,
         signal: controller.signal,
@@ -46,7 +44,6 @@ const createFetchApi = (baseURL: string, defaultTimeout = 30000) => {
       });
 
       clearTimeout(timeoutId);
-      console.log(`[fetch-api] Response status: ${response.status}`);
 
       if (!response.ok) {
         // Handle 429 rate limit with retry and jitter
@@ -55,7 +52,6 @@ const createFetchApi = (baseURL: string, defaultTimeout = 30000) => {
           const baseDelay = Math.min(Math.pow(2, attempt) * 1000, 5000); // 1s, 2s, 4s
           const jitter = Math.random() * 500; // 0-500ms random jitter
           const delay = baseDelay + jitter;
-          console.warn(`Rate limited (429), retrying in ${Math.round(delay)}ms... (${retries} retries left)`);
           await sleep(delay);
           return request<T>(endpoint, options, retries - 1);
         }
@@ -79,13 +75,11 @@ const createFetchApi = (baseURL: string, defaultTimeout = 30000) => {
       const text = await response.text();
       
       if (!text || text.trim() === '') {
-        console.log(`[fetch-api] Empty response for ${url}`);
         return {} as T;
       }
       
       if (contentType && contentType.includes('application/json')) {
         const json = JSON.parse(text);
-        console.log(`[fetch-api] JSON response for ${url}:`, json);
         return json;
       }
       
@@ -95,18 +89,11 @@ const createFetchApi = (baseURL: string, defaultTimeout = 30000) => {
       
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          console.error(`[fetch-api] Timeout for ${url}`);
           throw new FetchError('Request timeout', undefined, undefined);
-        }
-        // Don't log 404 errors as they're often expected (e.g., missing endpoints)
-        const is404 = error.message?.includes('404') || error.message?.includes('status: 404');
-        if (!is404) {
-          console.error(`[fetch-api] Error for ${url}:`, error.message);
         }
         throw new FetchError(error.message);
       }
       
-      console.error(`[fetch-api] Unknown error for ${url}:`, error);
       throw new FetchError('Unknown error occurred');
     }
   };
@@ -142,7 +129,11 @@ const createFetchApi = (baseURL: string, defaultTimeout = 30000) => {
 };
 
 // Create API instance
-const API_BASE_URL = process.env.API_BASE_URL || 'https://sitifystudio.com/api';
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL;
+
+if (!API_BASE_URL) {
+  throw new Error('NEXT_PUBLIC_API_BASE_URL environment variable is required');
+}
 
 export const api = createFetchApi(API_BASE_URL);
 

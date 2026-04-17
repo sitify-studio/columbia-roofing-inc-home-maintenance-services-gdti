@@ -20,6 +20,55 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Environment Variables
+
+Create a `.env` file in the root directory with the following variables:
+
+```env
+# API Configuration
+API_BASE_URL=https://sitifystudio.com/api
+
+# Site Configuration
+NEXT_PUBLIC_WEBBUILDER_SITE_SLUG=your-site-slug
+
+# Revalidation Secret (for ISR on-demand revalidation)
+REVALIDATE_SECRET=your-secret-key-here
+
+# Chatbot Configuration (optional)
+GEMINI_API_KEY=your-gemini-api-key
+```
+
+## ISR (Incremental Static Regeneration)
+
+This project uses Next.js ISR for efficient data caching and revalidation:
+
+- **Automatic Revalidation**: Data is cached for 60 seconds by default
+- **On-Demand Revalidation**: Call `/api/revalidate` endpoint to trigger immediate updates
+- **No Polling**: Removed client-side polling for better performance
+
+### Triggering On-Demand Revalidation
+
+When content changes in your backend, call the revalidation endpoint:
+
+```bash
+curl -X POST http://localhost:3000/api/revalidate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "secret": "your-secret-key-here",
+    "path": "/"
+  }'
+```
+
+Or revalidate specific paths:
+```bash
+curl -X POST http://localhost:3000/api/revalidate \
+  -H "Content-Type: application/json" \
+  -d '{
+    "secret": "your-secret-key-here",
+    "path": "/services"
+  }'
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

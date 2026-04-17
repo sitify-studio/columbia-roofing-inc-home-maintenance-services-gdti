@@ -57,8 +57,8 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
       setLoading(true);
       setError(null);
       
-      // Use real API when backend is available
-      const siteData = await siteApi.getSiteBySlug(slug);
+      // Use real API with ISR (60 second revalidation by default)
+      const siteData = await siteApi.getSiteBySlug(slug, 60);
       setSite(siteData);
       
       await Promise.all([
@@ -91,7 +91,7 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
 
   const loadPages = async (siteSlug: string) => {
     try {
-      const pagesData = await pageApi.getPagesBySite(siteSlug);
+      const pagesData = await pageApi.getPagesBySite(siteSlug, 60);
       setPages(pagesData);
     } catch (err) {
       console.warn('Failed to load pages:', err instanceof Error ? err.message : 'Unknown error');
@@ -100,7 +100,7 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
 
   const loadServicesBySiteSlug = async (siteSlug: string) => {
     try {
-      const servicesData = await serviceApi.getServicesBySite(siteSlug);
+      const servicesData = await serviceApi.getServicesBySite(siteSlug, 60);
       setServices(servicesData);
     } catch (err) {
       console.warn('Failed to load services:', err instanceof Error ? err.message : 'Unknown error');
@@ -109,7 +109,7 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
 
   const loadBlogPosts = async (siteSlug: string, limit?: number) => {
     try {
-      const postsData = await blogApi.getPostsBySite(siteSlug, limit);
+      const postsData = await blogApi.getPostsBySite(siteSlug, limit, 60);
       setBlogPosts(postsData);
     } catch (err) {
       console.warn('Failed to load blog posts:', err instanceof Error ? err.message : 'Unknown error');
@@ -118,7 +118,7 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
 
   const loadProjects = async (siteSlug: string, limit?: number) => {
     try {
-      const projectsData = await projectApi.getProjectsBySite(siteSlug, limit);
+      const projectsData = await projectApi.getProjectsBySite(siteSlug, limit, 60);
       setProjects(projectsData);
     } catch (err) {
       console.warn('Failed to load projects:', err instanceof Error ? err.message : 'Unknown error');
@@ -127,9 +127,7 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
 
   const loadTestimonials = async (siteSlug: string) => {
     try {
-      console.log('[WebBuilderProvider] Loading testimonials for site:', siteSlug);
-      const testimonialsData = await testimonialApi.getTestimonialsBySite(siteSlug);
-      console.log('[WebBuilderProvider] Testimonials loaded:', testimonialsData);
+      const testimonialsData = await testimonialApi.getTestimonialsBySite(siteSlug, 60);
       setTestimonials(testimonialsData);
     } catch (err) {
       console.warn('Failed to load testimonials:', err instanceof Error ? err.message : 'Unknown error');
@@ -138,7 +136,7 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
 
   const loadServiceAreaPages = async (siteSlug: string) => {
     try {
-      const serviceAreaPagesData = await serviceAreaApi.getServiceAreaPagesBySite(siteSlug);
+      const serviceAreaPagesData = await serviceAreaApi.getServiceAreaPagesBySite(siteSlug, 60);
       setServiceAreaPages(serviceAreaPagesData);
     } catch (err) {
       console.warn('Failed to load service area pages:', err instanceof Error ? err.message : 'Unknown error');
@@ -154,91 +152,9 @@ export const WebBuilderProvider: React.FC<WebBuilderProviderProps> = ({ children
     loadSite(SITE_SLUG);
   }, []);
 
-  // Poll for site updates every 3 seconds to detect theme/color changes from builder
-  useEffect(() => {
-    if (!site?.slug) return;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const siteData = await siteApi.getSiteBySlug(site.slug);
-        setSite(prevSite => {
-          // Only update if theme has changed
-          if (prevSite && JSON.stringify(prevSite.theme) !== JSON.stringify(siteData.theme)) {
-            return siteData;
-          }
-          return prevSite;
-        });
-      } catch (err) {
-        // Silently ignore polling errors to not disrupt user experience
-      }
-    }, 3000);
-
-    return () => clearInterval(intervalId);
-  }, [site?.slug]);
-
-  // Poll for projects updates every 5 seconds to detect new/updated published projects
-  useEffect(() => {
-    if (!site?.slug) return;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const projectsData = await projectApi.getProjectsBySite(site.slug);
-        setProjects(prevProjects => {
-          if (JSON.stringify(prevProjects) !== JSON.stringify(projectsData)) {
-            return projectsData;
-          }
-          return prevProjects;
-        });
-      } catch (err) {
-        // Silently ignore polling errors
-      }
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [site?.slug]);
-
-  // Poll for pages updates every 5 seconds so navigation updates after creating/publishing pages
-  useEffect(() => {
-    if (!site?.slug) return;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const pagesData = await pageApi.getPagesBySite(site.slug);
-        setPages(prevPages => {
-          if (JSON.stringify(prevPages) !== JSON.stringify(pagesData)) {
-            return pagesData;
-          }
-          return prevPages;
-        });
-      } catch (err) {
-        // Silently ignore polling errors
-      }
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [site?.slug]);
-
-  // Poll for services updates every 5 seconds to detect slug and content changes
-  useEffect(() => {
-    if (!site?.slug) return;
-
-    const intervalId = setInterval(async () => {
-      try {
-        const servicesData = await serviceApi.getServicesBySite(site.slug);
-        setServices(prevServices => {
-          // Only update if services data has changed
-          if (JSON.stringify(prevServices) !== JSON.stringify(servicesData)) {
-            return servicesData;
-          }
-          return prevServices;
-        });
-      } catch (err) {
-        // Silently ignore polling errors
-      }
-    }, 5000);
-
-    return () => clearInterval(intervalId);
-  }, [site?.slug]);
+  // Note: Polling removed - using ISR (Incremental Static Regeneration) instead
+  // Data will be refreshed via Next.js ISR and on-demand revalidation
+  // Call the revalidation API endpoint when content changes in the backend
 
   const contextValue: WebBuilderContextType = {
     site,

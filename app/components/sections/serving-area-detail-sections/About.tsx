@@ -18,8 +18,6 @@ export const About: React.FC<AboutProps> = ({ about, className }) => {
   // More permissive check - render if there's any content
   if (!about || (!about.title && !about.description && !about.image)) return null;
 
-  console.log('🔍 About section data:', about);
-
   const imageUrl = about.image 
     ? getImageSrc(
         typeof about.image === 'object' && about.image !== null

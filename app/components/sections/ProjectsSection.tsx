@@ -29,14 +29,6 @@ export const ProjectsSection: React.FC<ProjectsSectionProps> = ({ projectsSectio
   // Use manual projects if they exist (they have images from page section), otherwise fall back to DB projects
   const displayItems = manualProjects.length > 0 ? manualProjects : latestProjects;
 
-  // DEBUG: Check if projects have images
-  if (displayItems.length > 0) {
-    const firstItem = displayItems[0] as any;
-    console.log('ProjectsSection - First project:', firstItem);
-    console.log('ProjectsSection - featuredImage:', firstItem?.featuredImage);
-    console.log('ProjectsSection - image:', firstItem?.image);
-  }
-
   return (
     <section className={cn('py-24 lg:py-32 overflow-hidden', className)} style={{ backgroundColor: themeColors.pageBackground }}>
       <div className="container mx-auto px-6 lg:px-12">

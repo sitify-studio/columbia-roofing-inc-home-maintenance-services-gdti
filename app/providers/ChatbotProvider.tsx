@@ -2,7 +2,8 @@
 
 import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
 import { ChatbotSettings } from '@/app/hooks/useChatbot';
-import api from '@/app/lib/fetch-api';
+import { LangGraphChatbot, ChatbotError } from '@/app/lib/langgraph-chatbot';
+import { BaseMessage, HumanMessage, AIMessage } from '@langchain/core/messages';
 
 export interface ChatMessage {
   id: string;
@@ -75,11 +76,7 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children, sett
 
   const sendMessage = useCallback(
     async (content: string) => {
-      if (!settings || !content.trim()) return;
-
-      console.log('[ChatbotProvider] Settings:', settings);
-      console.log('[ChatbotProvider] API Key present:', !!settings.apiKey);
-      console.log('[ChatbotProvider] API Key value:', settings.apiKey ? '***' + settings.apiKey.slice(-4) : 'undefined');
+      if (!settings || !content.trim() || !settings.apiKey) return;
 
       const userMessage: ChatMessage = {
         id: Date.now().toString(),
@@ -93,53 +90,40 @@ export const ChatbotProvider: React.FC<ChatbotProviderProps> = ({ children, sett
 
       try {
         // Prepare conversation history for LangGraph
-        const conversationHistory = messages.map(msg => ({
-          role: msg.role,
-          content: msg.content,
-        }));
+        const history: BaseMessage[] = messages.map(msg => {
+          if (msg.role === 'user') {
+            return new HumanMessage(msg.content);
+          } else if (msg.role === 'assistant') {
+            return new AIMessage(msg.content);
+          }
+          throw new Error('Invalid message role in conversation history');
+        });
 
-        // Use local LangGraph API
-        const requestBody = {
-          message: content,
-          conversationHistory,
+        // Initialize LangGraph chatbot with API key from settings
+        const chatbot = new LangGraphChatbot({
           apiKey: settings.apiKey,
-          model: 'gemini-1.5-flash',
+          model: 'gemini-2.5-flash',
           temperature: 0.7,
           systemPrompt: settings.welcomeMessage,
-        };
-        
-        console.log('[ChatbotProvider] Request body (without sensitive data):', {
-          ...requestBody,
-          apiKey: requestBody.apiKey ? '***' + requestBody.apiKey.slice(-4) : 'undefined',
         });
 
-        const response = await fetch('/api/chatbot/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
-        });
+        // Get response from LangGraph
+        const result = await chatbot.chat(content, history);
 
-        const data = await response.json();
-        console.log('[ChatbotProvider] API response:', data);
-
-        if (!response.ok) {
-          throw new Error(data.error || 'Failed to get response');
+        if (result.error) {
+          throw new Error(result.error);
         }
-
-        const responseText = data.data?.response || 'Sorry, I could not generate a response.';
 
         const assistantMessage: ChatMessage = {
           id: (Date.now() + 1).toString(),
           role: 'assistant',
-          content: responseText,
+          content: result.response,
           timestamp: new Date(),
         };
 
         setMessages((prev) => [...prev, assistantMessage]);
       } catch (error) {
-        console.error('[ChatbotProvider] Chatbot API error:', error);
+        console.error('[Chatbot] Error:', error);
         let errorMessage = 'Sorry, I encountered an error. Please try again later.';
         
         if (error instanceof Error) {

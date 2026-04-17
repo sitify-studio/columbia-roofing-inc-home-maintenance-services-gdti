@@ -23,9 +23,6 @@ import { ContactSection } from './components/sections/ContactSection';
 export default function HomeClient() {
   const { site, pages, testimonials, loading, error } = useWebBuilder();
 
-  // Debug testimonials data
-  console.log('HomeClient testimonials:', testimonials);
-
   // Get theme colors from site
   const themeColors = {
     primary: site?.theme?.lightPrimaryColor || '#000000',

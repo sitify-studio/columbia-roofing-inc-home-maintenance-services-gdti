@@ -32,19 +32,11 @@ export const ServiceServingAreasSection: React.FC<ServiceServingAreasSectionProp
         const serviceAreas = service.serviceAreas || [];
         const siteAreas = Array.isArray(site?.serviceAreas) ? site!.serviceAreas.filter(Boolean) : [];
         
-        console.log('ServiceServingAreasSection service:', service?.name || 'No service');
-        console.log('Service areas:', serviceAreas);
-        console.log('Site areas:', siteAreas);
-        console.log('Service area pages:', serviceAreaPages);
-        
         // Use service-specific areas if available, otherwise fall back to site areas
         return (Array.isArray(serviceAreas) && serviceAreas.length > 0)
             ? serviceAreas
             : siteAreas;
     }, [service.serviceAreas, site?.serviceAreas, serviceAreaPages]);
-
-    console.log('Final areas to render:', areas);
-    console.log('Areas length:', areas.length);
 
     if (areas.length === 0) return null;
 

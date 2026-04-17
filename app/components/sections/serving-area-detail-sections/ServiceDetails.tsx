@@ -21,8 +21,6 @@ export const ServiceDetails: React.FC<ServiceDetailsProps> = ({ details, classNa
   // More permissive check - render if there's any content
   if (!details || (!details.title && !details.description && (!details.features || details.features.length === 0) && (!details.process || details.process.length === 0) && (!details.benefits || details.benefits.length === 0))) return null;
 
-  console.log('🔍 ServiceDetails section data:', details);
-
   const features = details.features || [];
   const process = details.process || [];
   const benefits = details.benefits || [];

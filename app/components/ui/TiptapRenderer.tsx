@@ -82,7 +82,6 @@ const normalizeNode = (node: any): any => {
     
     // If we extracted blocks, return them as siblings (not nested)
     if (extractedBlocks.length > 0) {
-      console.log('normalizeNode: extracted', extractedBlocks.length, 'blocks from paragraph');
       // Return as a doc with multiple children so the parent can handle them
       const children: any[] = [];
       if (inlineContent.length > 0) {

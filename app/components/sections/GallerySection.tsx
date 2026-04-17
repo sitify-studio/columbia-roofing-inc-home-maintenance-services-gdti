@@ -15,11 +15,7 @@ interface GallerySectionProps {
 }
 
 export const GallerySection: React.FC<GallerySectionProps> = ({ gallerySection, className }) => {
-    // Debug logging
-    console.log('GallerySection render - gallerySection:', gallerySection);
-    
     if (!gallerySection?.enabled || !gallerySection.images || gallerySection.images.length === 0) {
-        console.log('GallerySection not rendering - enabled:', gallerySection?.enabled, 'images length:', gallerySection?.images?.length);
         return null;
     }
 
@@ -39,7 +35,6 @@ export const GallerySection: React.FC<GallerySectionProps> = ({ gallerySection, 
                 caption,
             };
         });
-        console.log('GallerySection processed images:', processedImages);
         return processedImages;
     }, [gallerySection.images]);
 

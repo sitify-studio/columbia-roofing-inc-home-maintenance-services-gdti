@@ -16,9 +16,6 @@ export const ServingAreas: React.FC<ServiceServingAreasSectionProps> = ({ servic
     const themeFonts = useThemeFonts();
     const { site } = useWebBuilder();
 
-    console.log('🔍 ServingAreas component - service prop:', service);
-    console.log('🔍 ServingAreas component - site data:', site);
-
     const areas = useMemo(() => {
         // Try multiple data sources to find service areas
         let siteAreas: any[] = [];
@@ -39,10 +36,6 @@ export const ServingAreas: React.FC<ServiceServingAreasSectionProps> = ({ servic
             serviceAreas = service;
         }
         
-        console.log('🔍 Site areas:', siteAreas);
-        console.log('🔍 Service areas from service:', serviceAreas);
-        console.log('🔍 Service object keys:', service ? Object.keys(service) : 'null');
-        
         // Use service-specific areas if available, otherwise fall back to site areas
         const finalAreas = serviceAreas.length > 0 ? serviceAreas : siteAreas;
         
@@ -54,23 +47,17 @@ export const ServingAreas: React.FC<ServiceServingAreasSectionProps> = ({ servic
             return area;
         });
         
-        console.log('🔍 Final areas to display (cleaned):', cleanedAreas);
         return cleanedAreas;
     }, [service, site?.serviceAreas]);
 
-    console.log('🔍 Final areas array:', areas);
-
     // Always try to render if we have areas, even if service is null
     if (areas.length === 0) {
-        console.log('❌ ServingAreas: No areas to display, returning null');
         return (
             <div className="py-16 text-center" style={{ color: themeColors.lightPrimaryText }}>
                 No service areas available
             </div>
         );
     }
-
-    console.log('✅ ServingAreas: Rendering with', areas.length, 'areas');
 
     // Generate service slug from service name or use a default
     const serviceSlug = service?.name ? 

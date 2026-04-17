@@ -43,7 +43,6 @@ export default function ServiceAreaClient({ serviceSlug: serviceSlugProp, citySl
         const response = await api.get(`/public/sites/${site.slug}/service-areas/by-service/${serviceSlug}/${citySlug}`);
         
         if (response.success) {
-          console.log('🔍 Service Area Page Data:', response.data);
           setServiceAreaPage(response.data);
         } else {
           setError('Service area page not found');
@@ -84,10 +83,6 @@ export default function ServiceAreaClient({ serviceSlug: serviceSlugProp, citySl
   }
 
   console.log('🔍 Full serviceAreaPage keys:', Object.keys(serviceAreaPage));
-  console.log('🔍 Keys list:', JSON.stringify(Object.keys(serviceAreaPage)));
-  console.log('🔍 All serviceAreaPage data:', serviceAreaPage);
-
-  // Find the correct property name for service data
   const servicesData = serviceAreaPage.serviceOverview || 
                         serviceAreaPage.serviceDetails ||
                         null;
@@ -97,19 +92,6 @@ export default function ServiceAreaClient({ serviceSlug: serviceSlugProp, citySl
   const serviceDetailsData = serviceAreaPage.serviceDetails;
   const whyChooseUsData = serviceAreaPage.whyChooseUs || serviceAreaPage.about;
   const servingAreasData = serviceAreaPage.servingAreas;
-
-  // Section verification
-  console.log('📊 Section Rendering Status:');
-  console.log('✅ HeroSection:', serviceAreaPage.hero ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ About:', serviceAreaPage.about ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ ServiceOverview:', serviceOverviewData ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ ServiceDetails:', serviceDetailsData ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ WhyChooseUs:', whyChooseUsData ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ Highlights:', serviceAreaPage.highlights ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ OurServices:', serviceAreaPage.ourServices ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ ServingAreas:', servingAreasData ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ FAQs:', serviceAreaPage.faqs ? 'Will Render' : 'Will NOT render (no data)');
-  console.log('✅ CTA:', serviceAreaPage.cta ? 'Will Render' : 'Will NOT render (no data)');
 
   return (
     <div className="min-h-screen">

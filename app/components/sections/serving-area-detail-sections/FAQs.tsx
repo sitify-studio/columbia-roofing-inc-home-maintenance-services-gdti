@@ -19,8 +19,6 @@ export const FAQs: React.FC<FAQsProps> = ({ faqs, className }) => {
   // More permissive check - render if there's any content
   if (!faqs || (!faqs.title && !faqs.description && (!faqs.items || faqs.items.length === 0))) return null;
 
-  console.log('🔍 FAQs section data:', faqs);
-
   const toggle = (index: number) => {
     setOpenIndex(openIndex === index ? null : index);
   };
