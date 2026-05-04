@@ -8,10 +8,10 @@ if (!API_BASE_URL) {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { siteId: string } }
+  { params }: { params: Promise<{ siteId: string }> }
 ) {
   try {
-    const { siteId } = params;
+    const { siteId } = await params;
     const { searchParams } = new URL(request.url);
     
     // Forward the request to the backend API

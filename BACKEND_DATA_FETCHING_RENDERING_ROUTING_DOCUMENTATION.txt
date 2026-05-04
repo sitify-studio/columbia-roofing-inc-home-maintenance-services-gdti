@@ -1,0 +1,345 @@
+CODEBASE DOCUMENTATION: Backend Data Fetching, Rendering, and Routing
+===============================================================
+
+Project type
+------------
+- Next.js app using the App Router (the `app/` directory).
+- A mix of Server Components (default in App Router) and explicit Client Components (`'use client'`).
+- Data comes primarily from an external backend configured by `NEXT_PUBLIC_API_BASE_URL`.
+
+Key environment variables
+-------------------------
+- `NEXT_PUBLIC_API_BASE_URL`
+  - Required.
+  - Used as the base for all backend requests.
+  - Also used for proxy rewrites in `next.config.ts`.
+- `NEXT_PUBLIC_WEBBUILDER_SITE_SLUG`
+  - Used by `WebBuilderProvider` as the site identity to load.
+- `REVALIDATE_SECRET`
+  - Used by the revalidation endpoint in `app/api/revalidate/route.ts`.
+
+High-level architecture (request -> render)
+------------------------------------------
+1) The Next.js route renders a page (e.g. `/`, `/{pageSlug}`, `/blog`, `/service/{serviceSlug}`).
+2) Global providers are mounted in `app/layout.tsx`.
+3) The `WebBuilderProvider` runs on the client and loads the "site" + content collections from the backend.
+4) Pages/components read data from `useWebBuilder()` and/or make additional page-specific requests.
+5) UI sections render using the page/site JSON received from the backend.
+
+Routing system (Next.js App Router)
+----------------------------------
+Routes are defined by folder structure in `app/`:
+
+- `/` (Home)
+  - File: `app/page.tsx` (Server Component)
+  - Renders: `app/HomeClient.tsx` (Client Component)
+  - Metadata: `generateMetadata()` in `app/page.tsx`.
+
+- `/{pageSlug}` (Dynamic public pages)
+  - File: `app/[pageSlug]/page.tsx` (Server Component)
+  - Renders: `app/[pageSlug]/PageSlugClient.tsx` (Client Component)
+  - Metadata: `generateMetadata({ params })` in `app/[pageSlug]/page.tsx`.
+
+- `/service/{serviceSlug}` (Dynamic service detail)
+  - File: `app/service/[serviceSlug]/page.tsx`
+  - Renders: `app/service/[serviceSlug]/ServiceClient.tsx`
+  - Metadata: `generateServiceMetadata({ params })` (note: exported but not named `generateMetadata`).
+
+- `/service/{serviceSlug}/service-areas/{citySlug}` (Dynamic service-area detail)
+  - File: `app/service/[serviceSlug]/service-areas/[citySlug]/page.tsx` (Client Component)
+  - Renders: `ServiceAreaClient`.
+  - Metadata: `generateServiceAreaMetadata({ params })` (note: exported but not named `generateMetadata`).
+
+- `/blog` (Blog listing)
+  - File: `app/blog/page.tsx` (Client Component)
+  - Fetches posts client-side.
+
+- `/blog/{postSlug}` (Blog post detail)
+  - File: `app/blog/[postSlug]/page.tsx` (Client Component)
+  - Fetches post client-side.
+
+- `/project-detail/{projectSlug}` (Project detail)
+  - File: `app/project-detail/[projectSlug]/page.tsx` (Client Component)
+  - Fetches project client-side.
+
+- `/testimonials` (Testimonials)
+  - File: `app/testimonials/page.tsx` (Client Component)
+  - Uses a different fetching pattern (see below).
+
+There is no explicit `pages/` directory; this is App Router-based.
+
+Global layout and providers
+---------------------------
+File: `app/layout.tsx`
+
+The root layout wraps all routes with:
+- `ErrorBoundary`
+- `WebBuilderProvider`
+- `LanguageProvider`
+- `ThemeFontWrapper`
+- `ChatbotProviderWrapper`
+
+This means most pages can rely on `useWebBuilder()` for site-wide data and theme.
+
+Backend access patterns
+-----------------------
+There are two main patterns for talking to the backend.
+
+PATTERN A: Direct backend calls using `NEXT_PUBLIC_API_BASE_URL`
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Files:
+- `app/lib/fetch-api.ts`
+- `app/lib/api.ts`
+
+1) `app/lib/fetch-api.ts`:
+- Implements a lightweight `fetch` wrapper with:
+  - Timeout support via `AbortController`
+  - JSON parsing (or text fallback)
+  - Better error messages (`FetchError`)
+  - Retry behavior on HTTP 429 (rate limit) with exponential backoff + jitter
+- Creates a singleton `api` client using `NEXT_PUBLIC_API_BASE_URL`.
+
+2) `app/lib/api.ts`:
+- Builds higher-level, typed API helpers around the `api` client and `fetch`.
+- Introduces `fetchWithISR()`:
+  - Uses `fetch(url, { next: { revalidate } })` to enable ISR-style caching on the Next.js server.
+  - Normalizes response shapes by returning `data.data?.data ?? data.data ?? data`.
+- Exposes grouped APIs:
+  - `siteApi`, `pageApi`, `serviceApi`, `blogApi`, `projectApi`, `testimonialApi`, `serviceAreaApi`, `mediaApi`.
+
+Where this is used:
+- `WebBuilderProvider` uses `siteApi/pageApi/serviceApi/blogApi/projectApi/testimonialApi/serviceAreaApi`.
+- Blog pages and Project detail also use `blogApi/projectApi` directly.
+- Some metadata functions use `api.get(...)` directly.
+
+PATTERN B: Proxying through Next.js rewrites (`/api/*` and `/uploads/*`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+File: `next.config.ts`
+
+- Defines rewrites:
+  - `source: '/api/:path*'` -> `destination: `${NEXT_PUBLIC_API_BASE_URL}/:path*``
+  - `source: '/uploads/:path*'` -> `destination: `${NEXT_PUBLIC_API_BASE_URL}/uploads/:path*``
+
+Effect:
+- From the browser/client code you can call `fetch('/api/pages?...')` and it is forwarded to the backend.
+- This avoids CORS issues and keeps client code using same-origin URLs.
+
+Important detail:
+- The repo ALSO defines some real Next.js Route Handlers under `app/api/*`.
+- In Next.js, `app/api/.../route.ts` creates actual endpoints that live in your Next app.
+- The rewrite for `/api/:path*` can be confusing because the path overlaps.
+  - In practice, Next route handlers typically take precedence for matching routes.
+  - Any `/api/...` path that does NOT exist as a route handler will be rewritten to the backend.
+
+How site-wide data is loaded (the core data flow)
+------------------------------------------------
+File: `app/providers/WebBuilderProvider.tsx`
+
+This is the central client-side state container.
+
+State held in context:
+- `site: Site | null`
+- `pages: Page[]`
+- `services: Service[]`
+- `blogPosts: BlogPost[]`
+- `projects: Project[]`
+- `testimonials: { title?: string; description?: string; testimonials: any[] } | null`
+- `serviceAreaPages: any[]`
+- `currentPage: Page | null`
+- `loading: boolean`
+- `error: string | null`
+
+Startup behavior:
+- On mount (`useEffect`), it reads `SITE_SLUG` from `NEXT_PUBLIC_WEBBUILDER_SITE_SLUG`.
+- Calls `loadSite(SITE_SLUG)`.
+
+`loadSite(slug)`:
+- Fetches site data: `siteApi.getSiteBySlug(slug, 60)`.
+- Then runs in parallel:
+  - `loadPages(siteData.slug)` -> `pageApi.getPagesBySite(siteSlug, 60)`
+  - `loadServicesBySiteSlug(siteData.slug)` -> `serviceApi.getServicesBySite(siteSlug, 60)`
+  - `loadBlogPosts(siteData.slug)` -> `blogApi.getPostsBySite(siteSlug, limit?, 60)`
+  - `loadProjects(siteData.slug)` -> `projectApi.getProjectsBySite(siteSlug, limit?, 60)`
+  - `loadTestimonials(siteData.slug)` -> `testimonialApi.getTestimonialsBySite(siteSlug, 60)`
+  - `loadServiceAreaPages(siteData.slug)` -> `serviceAreaApi.getServiceAreaPagesBySite(siteSlug, 60)`
+
+Caching strategy:
+- The provider’s comments indicate polling was removed and ISR is used.
+- The `fetchWithISR()` function uses `next: { revalidate }` so responses can be cached and revalidated.
+
+How data is rendered (pages -> sections)
+---------------------------------------
+The UI is largely driven by a "page object" that includes section configs.
+Examples of sections rendered:
+- `HeroSection`
+- `AboutSection`
+- `ServicesSection`
+- `TestimonialsSection`
+- `FAQSection`
+- `CTASection`, `CTA2Section`, `CTA3Section`
+- `WhyChooseUsSection`
+- `CompanyDetailSection`
+- `ProjectsSection`
+- `GallerySection`
+- `BlogSection`
+- `ContactSection`
+
+Home rendering
+~~~~~~~~~~~~~~
+Files:
+- `app/page.tsx` (server)
+- `app/HomeClient.tsx` (client)
+
+Flow:
+- `HomeClient` reads `site`, `pages`, `testimonials`, `loading`, `error` from `useWebBuilder()`.
+- It finds the home page config:
+  - `const homePage = pages.find(p => p.pageType === 'home')`
+- Then it renders sections from that page JSON:
+  - `HeroSection hero={displayPage.hero}` etc.
+- The theme values are derived from `site.theme`.
+
+Dynamic page rendering (`/{pageSlug}`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Files:
+- `app/[pageSlug]/page.tsx` (server)
+- `app/[pageSlug]/PageSlugClient.tsx` (client)
+
+Flow:
+- Server `generateMetadata`:
+  - Fetches default site: `api.get('/public/sites/default')`.
+  - Fetches a page by slug: `/public/sites/{site.slug}/pages/{pageSlug}`.
+  - If not found, tries a service-area page: `/public/sites/{site.slug}/service-areas/{pageSlug}`.
+- Client rendering:
+  - Reads `pages` and attempts to match `page.pageType === pageSlug`.
+  - If found: sets `currentPage` in context.
+  - If NOT found: attempts to fetch a service-area page via:
+    - `api.get(/public/sites/{site.slug}/service-areas/{pageSlug})`
+  - Renders sections from either `currentPage` or `serviceAreaPage`.
+
+Service detail rendering (`/service/{serviceSlug}`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Files:
+- `app/service/[serviceSlug]/page.tsx`
+- `app/service/[serviceSlug]/ServiceClient.tsx`
+
+Flow:
+- `ServiceClient` reads `services` from `useWebBuilder()` (already fetched site-wide).
+- Finds service by slug:
+  - `services.find(s => s.slug === serviceSlug)`
+- Renders `<ServiceDetail service={service} allServices={services} />`.
+
+Service-area detail rendering (`/service/{serviceSlug}/service-areas/{citySlug}`)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Files:
+- `app/service/[serviceSlug]/service-areas/[citySlug]/ServiceAreaClient.tsx`
+
+Flow:
+- Client fetches the specific service+city page:
+  - `api.get(/public/sites/{site.slug}/service-areas/by-service/{serviceSlug}/{citySlug})`
+- Then renders specialized section components under `components/sections/serving-area-detail-sections/*`.
+
+Blog rendering
+~~~~~~~~~~~~~~
+Files:
+- `app/blog/page.tsx` (client)
+- `app/blog/[postSlug]/page.tsx` (client)
+
+Flow:
+- Blog list:
+  - On mount, calls `blogApi.getPostsBySite(site.slug)`.
+  - Filters `status === 'published'`.
+  - Renders cards linking to `/blog/{slug}`.
+- Blog detail:
+  - Calls `blogApi.getPostBySlug(site.slug, postSlug)`.
+  - Also fetches other posts for sidebar.
+  - Renders rich text via `TiptapRenderer`.
+
+Project detail rendering
+~~~~~~~~~~~~~~~~~~~~~~~~
+File:
+- `app/project-detail/[projectSlug]/page.tsx` (client)
+
+Flow:
+- Uses `useParams()` to read `projectSlug`.
+- On mount (once site is available) fetches project:
+  - `projectApi.getProjectBySlug(site.slug, projectSlug)`
+- Renders details using `TiptapRenderer` and `getImageSrc`.
+
+Special-case routes/pages that fetch differently
+------------------------------------------------
+Some pages fetch via `fetch('/api/...')` with a `siteId` (Mongo `_id`) and an optional auth token from `localStorage`.
+
+Examples:
+- `app/about-us/page.tsx`
+  - Calls:
+    - `fetch(/api/pages?siteId={site._id}&pageType=about)`
+    - Then `fetch(/api/pages/{pageId})`
+  - Adds `Authorization: Bearer {token}` if a token exists.
+
+- `app/testimonials/page.tsx`
+  - Similar two-step fetch for `pageType=testimonials`.
+
+Why this works:
+- Because of the rewrite in `next.config.ts`, `/api/pages` is forwarded to the backend (`NEXT_PUBLIC_API_BASE_URL`).
+- This is separate from the `app/lib/api.ts` approach.
+
+Next.js Route Handlers (server-side endpoints in this repo)
+----------------------------------------------------------
+These endpoints live inside the Next.js app and are not part of the external backend.
+
+- `app/api/contact/route.ts` (POST)
+  - Validates payload.
+  - Forwards request to backend `.../api/contact`.
+  - Has a dev fallback that logs submission and returns success.
+
+- `app/api/revalidate/route.ts` (POST)
+  - Requires `secret`.
+  - Calls `revalidatePath(...)` to trigger cache invalidation / ISR refresh.
+
+- `app/api/legal-files/route.ts` (GET)
+  - Fetches the configured site from backend and returns `site.legal`.
+
+- `app/api/chatbot/public/[siteId]/route.ts` (GET)
+  - Proxies chatbot settings from backend with `cache: 'no-store'`.
+
+- `app/api/testimonials/route.ts` (GET/POST)
+  - Currently returns mocked testimonial data (not the backend).
+  - This is an in-repo example route handler.
+
+SEO / metadata fetching
+-----------------------
+Several routes define metadata based on backend content.
+
+- `app/page.tsx`:
+  - Fetch default site + pages and picks the `home` page.
+
+- `app/[pageSlug]/page.tsx`:
+  - Fetch default site + page by slug; fallback to service-area page.
+
+- `app/service/[serviceSlug]/page.tsx`:
+  - Fetch default site + all services, then finds service by slug.
+  - Note: the function is named `generateServiceMetadata`.
+
+- `app/service/[serviceSlug]/service-areas/[citySlug]/page.tsx`:
+  - Fetch default site + service-area page by service+city.
+  - Note: the function is named `generateServiceAreaMetadata`.
+
+Potentially important nuance:
+- In Next.js App Router, only `export async function generateMetadata(...)` is automatically picked up.
+- If the function is not named `generateMetadata`, Next.js will not call it.
+  - You currently have custom-named metadata functions for some routes.
+
+Summary of the main data flow
+-----------------------------
+- Base backend URL: `NEXT_PUBLIC_API_BASE_URL`.
+- Global data fetch:
+  - `WebBuilderProvider` loads `site`, `pages`, `services`, `blogPosts`, `projects`, `testimonials`, `serviceAreaPages`.
+- Rendering:
+  - Most pages render by selecting a `Page` object and passing section configs into section components.
+- Routing:
+  - Determined by the `app/` directory structure and dynamic segments like `[pageSlug]`, `[serviceSlug]`, `[citySlug]`.
+- Additional fetches:
+  - Some pages fetch directly using `blogApi`, `projectApi`, or direct `api.get`.
+  - Some pages use `fetch('/api/...')` which is forwarded to the backend via rewrites.
+- Server endpoints in this repo:
+  - `app/api/*/route.ts` provides server-side handlers for contact, revalidation, legal files, chatbot proxy, and mock testimonials.
