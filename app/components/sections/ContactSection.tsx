@@ -66,6 +66,14 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
   const inputPlaceholderColor = useLightCardText ? themeColors.lightSecondaryText : themeColors.secondaryText;
 
   const businessHours = site?.business?.businessHours;
+  const coordinates = site?.business?.coordinates;
+  const hasValidCoordinates =
+    typeof coordinates?.latitude === 'number' &&
+    typeof coordinates?.longitude === 'number';
+  const mapSrc =
+    hasValidCoordinates
+      ? `https://maps.google.com/maps?q=${coordinates!.latitude},${coordinates!.longitude}&z=15&output=embed`
+      : undefined;
 
   useEffect(() => {
     if (!businessHours?.isEnabled) return;
@@ -303,7 +311,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
 
           {/* Middle Column: Map */}
           <div className="lg:col-span-1 h-full order-3 lg:order-2">
-            {contactSection.showMap && site?.business?.coordinates && (
+            {contactSection.showMap && mapSrc && (
               <div className="h-full w-full rounded-[1.5rem] overflow-hidden shadow-lg border-4 border-white min-h-[300px] md:min-h-[400px]">
                 <iframe
                   title="Office Location"
@@ -311,7 +319,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                   height="100%"
                   frameBorder="0"
                   style={{ border: 0 }}
-                  src={`https://maps.google.com/maps?q=${site.business.coordinates.latitude},${site.business.coordinates.longitude}&z=15&output=embed`}
+                  src={mapSrc}
                   allowFullScreen
                   loading="lazy"
                 />
