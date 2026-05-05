@@ -63,10 +63,7 @@ export const Footer: React.FC = () => {
     if (!copyright) {
       return `© ${new Date().getFullYear()} ${site?.name}. All rights reserved.`;
     }
-    if (typeof copyright === 'object' && copyright.type === 'doc') {
-      return <TiptapRenderer content={copyright} as="inline" />;
-    }
-    return String(copyright);
+    return <TiptapRenderer content={copyright} as="inline" />;
   };
 
   const renderFooterDescription = () => {
