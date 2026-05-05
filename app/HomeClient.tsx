@@ -142,7 +142,7 @@ export default function HomeClient() {
       <main>
         <HeroSection hero={displayPage.hero} />
 
-        <ServiceHighlightsSection serviceHighlightsSection={displayPage.serviceHighlightsSection} />
+        {/* <ServiceHighlightsSection serviceHighlightsSection={displayPage.serviceHighlightsSection} /> */}
 
         <AboutSection aboutSection={displayPage.aboutSection} />
         <ServicesSection servicesSection={displayPage.servicesSection} />
