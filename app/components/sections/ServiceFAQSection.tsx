@@ -108,7 +108,7 @@ export const ServiceFAQSection: React.FC<ServiceFAQSectionProps> = ({ service })
                                             <div
                                                 className="text-sm font-medium"
                                                 style={{ 
-                                                    color: themeColors.darkPrimaryText 
+                                                    color: themeColors.lightPrimaryText 
                                                 }}
                                             >
                                                 {faq.question}
@@ -117,9 +117,9 @@ export const ServiceFAQSection: React.FC<ServiceFAQSectionProps> = ({ service })
                                             <span
                                                 className="mt-0.5 inline-flex h-7 w-7 items-center justify-center rounded-full border shrink-0"
                                                 style={{
-                                                    borderColor: themeColors.darkPrimaryText,
+                                                    borderColor: themeColors.lightPrimaryText,
                                                     backgroundColor: isOpen ? `${themeColors.primaryButton}55` : 'transparent',
-                                                    color: themeColors.darkPrimaryText,
+                                                    color: themeColors.lightPrimaryText,
                                                 }}
                                                 aria-hidden="true"
                                             >
@@ -140,7 +140,7 @@ export const ServiceFAQSection: React.FC<ServiceFAQSectionProps> = ({ service })
                                             <div
                                                 className="mt-3 pr-10 text-sm leading-relaxed"
                                                 style={{ 
-                                                    color: themeColors.darkPrimaryText 
+                                                    color: themeColors.lightSecondaryText 
                                                 }}
                                             >
                                                 {faq.answer}

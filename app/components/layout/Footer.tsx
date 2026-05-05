@@ -122,8 +122,7 @@ export const Footer: React.FC = () => {
               <img
                 src={getImageSrc(site.theme.logoUrl)}
                 alt={typeof site?.name === 'string' ? site.name : 'Logo'}
-                className="h-20 w-auto object-contain brightness-0 invert"
-                style={{ filter: 'brightness(0) invert(1)' }}
+                className="h-20 w-auto object-contain"
               />
             ) : (
               <h2 className="text-3xl font-serif italic" style={{ fontFamily: themeFonts.heading }}>

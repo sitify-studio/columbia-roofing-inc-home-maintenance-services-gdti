@@ -40,7 +40,7 @@ export const OtherServicesCard: React.FC<OtherServicesCardProps> = ({ otherServi
             <h3 
                 className="text-lg font-semibold mb-4"
                 style={{ 
-                    color: themeColors.darkPrimaryText,
+                    color: themeColors.lightPrimaryText,
                 }}
             >
                 Other Services
@@ -70,7 +70,7 @@ export const OtherServicesCard: React.FC<OtherServicesCardProps> = ({ otherServi
                             )}
                             <span
                                 className="text-sm font-medium group-hover:underline"
-                                style={{ color: themeColors.darkPrimaryText }}
+                                style={{ color: themeColors.lightPrimaryText }}
                             >
                                 <TiptapRenderer content={otherService.name} as="inline" />
                             </span>

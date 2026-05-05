@@ -18,6 +18,32 @@ const DAY_LABELS: Record<string, string> = {
   sunday: 'Sunday'
 };
 
+const isDarkColor = (color?: string) => {
+  if (!color) return false;
+  const value = color.trim().toLowerCase();
+  if (!value.startsWith('#')) return false;
+
+  const hex = value.slice(1);
+  const normalizedHex =
+    hex.length === 3
+      ? hex
+          .split('')
+          .map((char) => `${char}${char}`)
+          .join('')
+      : hex;
+
+  if (normalizedHex.length !== 6) return false;
+
+  const r = parseInt(normalizedHex.slice(0, 2), 16);
+  const g = parseInt(normalizedHex.slice(2, 4), 16);
+  const b = parseInt(normalizedHex.slice(4, 6), 16);
+
+  if ([r, g, b].some(Number.isNaN)) return false;
+
+  const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+  return brightness < 128;
+};
+
 interface ContactSectionProps {
   contactSection: Page['contactSection'];
   className?: string;
@@ -33,6 +59,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
   const themeColors = useThemeColors();
   const themeFonts = useThemeFonts();
   const { site } = useWebBuilder();
+  const useLightCardText = isDarkColor(themeColors.sectionBackground);
+  const cardPrimaryTextColor = useLightCardText ? themeColors.lightPrimaryText : themeColors.darkPrimaryText;
+  const cardSecondaryTextColor = useLightCardText ? themeColors.lightSecondaryText : themeColors.secondaryText;
+  const inputTextColor = useLightCardText ? themeColors.lightPrimaryText : themeColors.darkPrimaryText;
+  const inputPlaceholderColor = useLightCardText ? themeColors.lightSecondaryText : themeColors.secondaryText;
 
   const businessHours = site?.business?.businessHours;
 
@@ -173,9 +204,13 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
             {/* Contact Form Container */}
             <div 
               className="p-4 md:p-6 rounded-[1.5rem] shadow-sm border flex flex-col h-full"
-              style={{ backgroundColor: themeColors.sectionBackground, borderColor: `${themeColors.inactive}33` }}
+              style={{ 
+                backgroundColor: themeColors.sectionBackground, 
+                borderColor: `${themeColors.inactive}33`,
+                color: cardPrimaryTextColor
+              }}
             >
-              <h3 className="text-lg md:text-xl font-semibold mb-6">Get in Touch</h3>
+              <h3 className="text-lg md:text-xl font-semibold mb-6" style={{ color: cardPrimaryTextColor }}>Get in Touch</h3>
               <form onSubmit={handleSubmit} className="space-y-4 flex-grow flex flex-col">
                 <div className="space-y-4">
                   <input
@@ -184,14 +219,34 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                     required
                     value={formData.name}
                     onChange={handleChange}
-                    className="w-full bg-white/50 border-b py-2 px-3 text-sm focus:outline-none focus:border-black transition-colors"
+                    className={cn(
+                      'w-full border-b py-2 px-3 text-sm focus:outline-none transition-colors placeholder:text-[var(--input-placeholder-color)]',
+                      useLightCardText
+                        ? 'bg-white/10 focus:border-white'
+                        : 'bg-white/50 focus:border-black'
+                    )}
+                    style={{ 
+                      borderColor: `${themeColors.inactive}66`,
+                      color: inputTextColor,
+                      ['--input-placeholder-color' as '--input-placeholder-color']: inputPlaceholderColor
+                    } as React.CSSProperties}
                   />
                   <input
                     name="phone"
                     placeholder="Phone"
                     value={formData.phone}
                     onChange={handleChange}
-                    className="w-full bg-white/50 border-b py-2 px-3 text-sm focus:outline-none focus:border-black transition-colors"
+                    className={cn(
+                      'w-full border-b py-2 px-3 text-sm focus:outline-none transition-colors placeholder:text-[var(--input-placeholder-color)]',
+                      useLightCardText
+                        ? 'bg-white/10 focus:border-white'
+                        : 'bg-white/50 focus:border-black'
+                    )}
+                    style={{ 
+                      borderColor: `${themeColors.inactive}66`,
+                      color: inputTextColor,
+                      ['--input-placeholder-color' as '--input-placeholder-color']: inputPlaceholderColor
+                    } as React.CSSProperties}
                   />
                 </div>
                 <input
@@ -201,7 +256,17 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                   required
                   value={formData.email}
                   onChange={handleChange}
-                  className="w-full bg-white/50 border-b py-2 px-3 text-sm focus:outline-none focus:border-black transition-colors"
+                  className={cn(
+                    'w-full border-b py-2 px-3 text-sm focus:outline-none transition-colors placeholder:text-[var(--input-placeholder-color)]',
+                    useLightCardText
+                      ? 'bg-white/10 focus:border-white'
+                      : 'bg-white/50 focus:border-black'
+                  )}
+                  style={{ 
+                    borderColor: `${themeColors.inactive}66`,
+                    color: inputTextColor,
+                    ['--input-placeholder-color' as '--input-placeholder-color']: inputPlaceholderColor
+                  } as React.CSSProperties}
                 />
                 <textarea
                   name="message"
@@ -210,7 +275,17 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                   required
                   value={formData.message}
                   onChange={handleChange}
-                  className="w-full bg-white/50 border-b py-2 px-3 text-sm focus:outline-none focus:border-black transition-colors resize-none flex-grow"
+                  className={cn(
+                    'w-full border-b py-2 px-3 text-sm focus:outline-none transition-colors resize-none flex-grow placeholder:text-[var(--input-placeholder-color)]',
+                    useLightCardText
+                      ? 'bg-white/10 focus:border-white'
+                      : 'bg-white/50 focus:border-black'
+                  )}
+                  style={{ 
+                    borderColor: `${themeColors.inactive}66`,
+                    color: inputTextColor,
+                    ['--input-placeholder-color' as '--input-placeholder-color']: inputPlaceholderColor
+                  } as React.CSSProperties}
                 />
                 <button
                   type="submit"
@@ -222,7 +297,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                   <ArrowUpRight size={18} className="group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                 </button>
               </form>
-              {submitMessage && <p className="mt-3 text-center text-xs font-medium">{submitMessage}</p>}
+              {submitMessage && <p className="mt-3 text-center text-xs font-medium" style={{ color: cardSecondaryTextColor }}>{submitMessage}</p>}
             </div>
           </div>
 
@@ -249,14 +324,18 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
             {businessHours?.isEnabled && (
               <div 
                 className="p-6 rounded-[1.5rem] border shadow-sm h-full flex flex-col"
-                style={{ backgroundColor: themeColors.sectionBackground, borderColor: `${themeColors.inactive}33` }}
+                style={{ 
+                  backgroundColor: themeColors.sectionBackground, 
+                  borderColor: `${themeColors.inactive}33`,
+                  color: cardPrimaryTextColor
+                }}
               >
                 <div className="flex items-center justify-between mb-6">
                   <div className="flex items-center gap-2">
                     <div className="p-2 rounded-full bg-black/5">
-                      <Clock size={18} />
+                      <Clock size={18} color={cardPrimaryTextColor} />
                     </div>
-                    <h3 className="text-lg font-semibold">Hours</h3>
+                    <h3 className="text-lg font-semibold" style={{ color: cardPrimaryTextColor }}>Hours</h3>
                   </div>
                   {status && (
                     <span className={cn("px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider", status.bgColor, status.color)}>
@@ -273,11 +352,11 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                         key={dayHours.day}
                         className={cn(
                           "flex items-center justify-between py-2 px-3 rounded-lg transition-colors",
-                          isToday ? "bg-white shadow-sm border" : "opacity-70"
+                          isToday ? "bg-white/20 shadow-sm border" : "opacity-70"
                         )}
                         style={isToday ? { borderColor: `${themeColors.primaryButton}33` } : {}}
                       >
-                        <span className={cn("text-xs font-medium", isToday && "font-bold")}>
+                        <span className={cn("text-xs font-medium", isToday && "font-bold")} style={{ color: cardPrimaryTextColor }}>
                           {DAY_LABELS[dayHours.day]}
                         </span>
                         <span className={cn("text-[11px]", isToday && "font-medium")}>
@@ -289,7 +368,7 @@ export const ContactSection: React.FC<ContactSectionProps> = ({ contactSection, 
                 </div>
 
                 {businessHours.timezone && (
-                  <p className="mt-4 text-[10px] opacity-40 text-center italic mt-auto">
+                  <p className="mt-4 text-[10px] opacity-60 text-center italic mt-auto">
                     Timezone: {businessHours.timezone}
                   </p>
                 )}
